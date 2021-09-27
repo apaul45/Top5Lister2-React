@@ -149,7 +149,7 @@ class App extends React.Component {
         if (this.state.currentDeleteList != null){
             let key = this.state.currentDeleteList.key;
             //Update the session data to filter out the confirmed list to delete, and then sort it
-            let updatedPairs = this.state.sessionData.keyNamePairs.filter(list => list.key != key);
+            let updatedPairs = this.state.sessionData.keyNamePairs.filter(list => list.key !== key);
             this.sortKeyNamePairsByName(updatedPairs);
             //Set the new session data variable to the filtered out list
             //This set state will then automatically call render() and upate the ui
