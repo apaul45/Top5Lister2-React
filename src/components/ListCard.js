@@ -51,7 +51,7 @@ export default class ListCard extends React.Component {
 
     render() {
         const { keyNamePair, selected } = this.props;
-
+        {/* Returns the button that handles editing the name of a list */}
         if (this.state.editActive) {
             return (
                 <input
@@ -71,6 +71,8 @@ export default class ListCard extends React.Component {
                 selectClass = "selected-list-card";
             }
             return (
+                //This is the specific div containing the name, delete button, 
+                //etc
                 <div
                     id={keyNamePair.key}
                     key={keyNamePair.key}

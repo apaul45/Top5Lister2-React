@@ -24,7 +24,10 @@ class App extends React.Component {
         // SETUP THE INITIAL STATE
         this.state = {
             currentList : null,
-            sessionData : loadedSessionData
+            sessionData : loadedSessionData,
+            //The currentDeleteList attribute contains the pair whos delete button was clicked
+            //This will be updated in deleteList so that its name can be rendered correctly in deleteModal
+            currentDeleteList : null
         }
     }
     sortKeyNamePairsByName = (keyNamePairs) => {
@@ -104,6 +107,7 @@ class App extends React.Component {
             this.db.mutationUpdateSessionData(this.state.sessionData);
         });
     }
+
     // THIS FUNCTION BEGINS THE PROCESS OF LOADING A LIST FOR EDITING
     loadList = (key) => {
         let newCurrentList = this.db.queryGetList(key);
@@ -124,12 +128,41 @@ class App extends React.Component {
             // ANY AFTER EFFECTS?
         });
     }
-    deleteList = () => {
+    deleteList = (pair) => {
         // SOMEHOW YOU ARE GOING TO HAVE TO FIGURE OUT
         // WHICH LIST IT IS THAT THE USER WANTS TO
         // DELETE AND MAKE THAT CONNECTION SO THAT THE
         // NAME PROPERLY DISPLAYS INSIDE THE MODAL
+        
+        //Before making the delete modal div visible, update the currentDeleteList
+        //state attribute to be the pair who's delete button was clicked on
+        this.setState(prevState => ({
+            //Changing the currentDeleteList will cause all components to re render,
+            //meaning that DeleteModal will re render to include the right pair that can be used to 
+            //display the name 
+            currentDeleteList : pair
+        }));
         this.showDeleteListModal();
+    }
+    deleteSelectedList = () => {
+        //let key = (this.state.currentDeleteList != null) ? this.state.currentDeleteList.key : -1;
+        if (this.state.currentDeleteList != null){
+            let key = this.state.currentDeleteList.key;
+            //Update the session data to filter out the confirmed list to delete, and then sort it
+            let updatedPairs = this.state.sessionData.keyNamePairs.filter(list => list.key != key);
+            this.sortKeyNamePairsByName(updatedPairs);
+            //Set the new session data variable to the filtered out list
+            //This set state will then automatically call render() and upate the ui
+            this.setState(prevState => ({
+                sessionData: {
+                    keyNamePairs: updatedPairs
+                }
+            }), () => {
+                //Save the changes to the current session data to local storage using mutationUpdateSessionData
+                this.db.mutationUpdateSessionData(this.state.sessionData);
+            });
+            this.hideDeleteListModal();
+        }
     }
     // THIS FUNCTION SHOWS THE MODAL FOR PROMPTING THE USER
     // TO SEE IF THEY REALLY WANT TO DELETE THE LIST
@@ -148,6 +181,8 @@ class App extends React.Component {
                 <Banner 
                     title='Top 5 Lister'
                     closeCallback={this.closeCurrentList} />
+                {/* In sidebar, each of the list divs are stored with their
+                keyname pairs, delete buttons, create buttons, and more */}
                 <Sidebar
                     heading='Your Lists'
                     currentList={this.state.currentList}
@@ -162,7 +197,9 @@ class App extends React.Component {
                 <Statusbar 
                     currentList={this.state.currentList} />
                 <DeleteModal
+                    pair = {this.state.currentDeleteList} 
                     hideDeleteListModalCallback={this.hideDeleteListModal}
+                    deleteSelectedListCallback = {this.deleteSelectedList}
                 />
             </div>
         );

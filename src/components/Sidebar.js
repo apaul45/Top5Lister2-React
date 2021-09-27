@@ -1,6 +1,6 @@
 import React from "react";
 import ListCard from "./ListCard";
-
+//This component handles the mapping/appearance of each list on the sidebar 
 export default class Sidebar extends React.Component {
     render() {
         const { heading,
@@ -12,6 +12,7 @@ export default class Sidebar extends React.Component {
                 renameListCallback} = this.props;
         return (
             <div id="top5-sidebar">
+                {/* Div containing the add list */}
                 <div id="sidebar-heading">
                     <input 
                         type="button" 
@@ -23,6 +24,9 @@ export default class Sidebar extends React.Component {
                 </div>
                 <div id="sidebar-list">
                 {
+                    //This div maps each of the keyNamePairs to their own div:
+                    //its propagates down all the necessary info about loading, editing, and deleting the list to 
+                    //the specific listcard div
                     keyNamePairs.map((pair) => (
                         <ListCard
                             key={pair.key}
