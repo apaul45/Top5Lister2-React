@@ -1,6 +1,8 @@
 import React from 'react';
 import './App.css';
-
+import ChangeItem_Transaction from './components/transactions/ChangeItem_Transaction.js';
+import DragAndDropTransaction from './components/transactions/DragDropItem_Transaction.js';
+import jsTPS from './common/jsTPS.js';
 // IMPORT DATA MANAGEMENT AND TRANSACTION STUFF
 import DBManager from './db/DBManager';
 
@@ -18,8 +20,12 @@ class App extends React.Component {
         // THIS WILL TALK TO LOCAL STORAGE
         this.db = new DBManager();
 
+        //This will keep track of the transaction stack
+        this.tps = new jsTPS();
+
         // GET THE SESSION DATA FROM OUR DATA MANAGER
         let loadedSessionData = this.db.queryGetSessionData();
+        console.log(loadedSessionData.nextKey);
 
         // SETUP THE INITIAL STATE
         this.state = {
@@ -40,6 +46,7 @@ class App extends React.Component {
     createNewList = () => {
         // FIRST FIGURE OUT WHAT THE NEW LIST'S KEY AND NAME WILL BE
         let newKey = this.state.sessionData.nextKey;
+        console.log(newKey);
         let newName = "Untitled" + newKey;
 
         // MAKE THE NEW LIST
@@ -48,7 +55,7 @@ class App extends React.Component {
             name: newName,
             items: ["?", "?", "?", "?", "?"]
         };
-
+        console.log(newList);
         // MAKE THE KEY,NAME OBJECT SO WE CAN KEEP IT IN OUR
         // SESSION DATA SO IT WILL BE IN OUR LIST OF LISTS
         let newKeyNamePair = { "key": newKey, "name": newName };
@@ -74,6 +81,7 @@ class App extends React.Component {
             this.db.mutationCreateList(newList);
         });
     }
+
     renameList = (key, newName) => {
         let newKeyNamePairs = [...this.state.sessionData.keyNamePairs];
         // NOW GO THROUGH THE ARRAY AND FIND THE ONE TO RENAME
@@ -101,21 +109,55 @@ class App extends React.Component {
         }), () => {
             // AN AFTER EFFECT IS THAT WE NEED TO MAKE SURE
             // THE TRANSACTION STACK IS CLEARED
+            this.tps.clearAllTransactions();
             let list = this.db.queryGetList(key);
             list.name = newName;
             this.db.mutationUpdateList(list);
             this.db.mutationUpdateSessionData(this.state.sessionData);
         });
     }
-
+    addChangeItemTransaction = (oldText, id, newText) => {
+        // GET THE CURRENT TEXT
+        let transaction = new ChangeItem_Transaction(this, id, oldText, newText);
+        //Add the transaction to the transaction stack
+        this.tps.addTransaction(transaction);
+    }
+    renameItem = (id, newName) => {
+        if (this.state.currentList != null){
+            let newItemList = this.db.queryGetList(this.state.currentList.key);
+            newItemList.items[id-1] = newName;
+            let newKeyNamePair = [...this.state.sessionData.keyNamePairs];
+            newKeyNamePair.map((pair) => pair.key !== this.state.currentList.key ? pair : pair = newItemList);
+            //use SetState to update the items on the ui & cause a re-render
+            this.setState(prevState => ({
+                currentList: newItemList,
+                sessionData: {
+                    nextKey: prevState.sessionData.nextKey,
+                    counter: prevState.sessionData.counter,
+                    keyNamePairs: newKeyNamePair
+                }
+            }), () => {
+                //Then use after effect to save all changes to local storage using mutationUpdateSessionData
+                this.db.mutationUpdateList(this.state.currentList);
+                this.db.mutationUpdateSessionData(this.state.sessionData);
+            });
+        }
+    }
+    undo(){
+        this.tps.undoTransaction();
+    }
+    redo(){
+        this.tps.doTransaction();
+    }
     // THIS FUNCTION BEGINS THE PROCESS OF LOADING A LIST FOR EDITING
     loadList = (key) => {
         let newCurrentList = this.db.queryGetList(key);
+        console.log(newCurrentList);
         this.setState(prevState => ({
             currentList: newCurrentList,
             sessionData: prevState.sessionData
         }), () => {
-            // ANY AFTER EFFECTS?
+            this.tps.clearAllTransactions();
         });
     }
     // THIS FUNCTION BEGINS THE PROCESS OF CLOSING THE CURRENT LIST
@@ -125,7 +167,7 @@ class App extends React.Component {
             listKeyPairMarkedForDeletion : prevState.listKeyPairMarkedForDeletion,
             sessionData: this.state.sessionData
         }), () => {
-            // ANY AFTER EFFECTS?
+            this.tps.clearAllTransactions();
         });
     }
     deleteList = (pair) => {
@@ -142,6 +184,7 @@ class App extends React.Component {
             //display the name 
             currentDeleteList : pair
         }));
+        console.log(this.state.sessionData.nextKey);
         this.showDeleteListModal();
     }
     deleteSelectedList = () => {
@@ -150,12 +193,17 @@ class App extends React.Component {
             let key = this.state.currentDeleteList.key;
             //Update the session data to filter out the confirmed list to delete, and then sort it
             let updatedPairs = this.state.sessionData.keyNamePairs.filter(list => list.key !== key);
+            console.log(updatedPairs);
+            console.log(this.state.sessionData.nextKey);
+            console.log(this.state.sessionData.counter);
             this.sortKeyNamePairsByName(updatedPairs);
             //Set the new session data variable to the filtered out list
             //This set state will then automatically call render() and upate the ui
             this.setState(prevState => ({
                 sessionData: {
-                    keyNamePairs: updatedPairs
+                    keyNamePairs: updatedPairs,
+                    counter: prevState.sessionData.counter - 1,
+                    nextKey : prevState.sessionData.nextKey
                 }
             }), () => {
                 //Save the changes to the current session data to local storage using mutationUpdateSessionData
@@ -180,7 +228,10 @@ class App extends React.Component {
             <div id="app-root">
                 <Banner 
                     title='Top 5 Lister'
-                    closeCallback={this.closeCurrentList} />
+                    closeCallback={this.closeCurrentList} 
+                    undoCallback = {this.undo}
+                    redoCallback = {this.redo}
+                    />
                 {/* In sidebar, each of the list divs are stored with their
                 keyname pairs, delete buttons, create buttons, and more */}
                 <Sidebar
@@ -193,7 +244,9 @@ class App extends React.Component {
                     renameListCallback={this.renameList}
                 />
                 <Workspace
-                    currentList={this.state.currentList} />
+                    currentList={this.state.currentList} 
+                    changeItemTransaction = {this.addChangeItemTransaction}
+                    />
                 <Statusbar 
                     currentList={this.state.currentList} />
                 <DeleteModal

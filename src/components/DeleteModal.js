@@ -16,7 +16,7 @@ export default class DeleteModal extends Component {
                         <button
                             id="dialog-yes-button"
                             className="modal-button"
-                            onClick={deleteSelectedListCallback}
+                            onClick={()=>deleteSelectedListCallback(pair)}
                         >Confirm</button>
                         <button
                             id="dialog-no-button"
