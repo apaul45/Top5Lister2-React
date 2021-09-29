@@ -78,6 +78,9 @@ class App extends React.Component {
         }), () => {
             // PUTTING THIS NEW LIST IN PERMANENT STORAGE
             // IS AN AFTER EFFECT
+            //Make sure the current transaction stack is cleared, because focus will automatically
+            //go to the newly added list 
+            this.tps.clearAllTransactions();
             this.db.mutationCreateList(newList);
         });
     }
@@ -109,7 +112,8 @@ class App extends React.Component {
         }), () => {
             // AN AFTER EFFECT IS THAT WE NEED TO MAKE SURE
             // THE TRANSACTION STACK IS CLEARED
-            this.tps.clearAllTransactions();
+            //Shouldn't be needed: if another list besides the one that was current
+            //is double clicked, focus will automatically shift to it
             let list = this.db.queryGetList(key);
             list.name = newName;
             this.db.mutationUpdateList(list);
@@ -143,28 +147,34 @@ class App extends React.Component {
             });
         }
     }
-    undo(){
+    undo = () => {
         this.tps.undoTransaction();
     }
-    redo(){
+    redo = () => {
         this.tps.doTransaction();
     }
     // THIS FUNCTION BEGINS THE PROCESS OF LOADING A LIST FOR EDITING
     loadList = (key) => {
         let newCurrentList = this.db.queryGetList(key);
+        let isSameList = false;
+        if ((this.state.currentList !== null) && (key === this.state.currentList.key)){
+            isSameList = true;
+        }
         console.log(newCurrentList);
         this.setState(prevState => ({
             currentList: newCurrentList,
             sessionData: prevState.sessionData
         }), () => {
-            this.tps.clearAllTransactions();
+            //Make sure to clear the transaction stack if a NEW list is loaded
+            if (!isSameList){
+                this.tps.clearAllTransactions();
+            }
         });
     }
     // THIS FUNCTION BEGINS THE PROCESS OF CLOSING THE CURRENT LIST
     closeCurrentList = () => {
         this.setState(prevState => ({
             currentList: null,
-            listKeyPairMarkedForDeletion : prevState.listKeyPairMarkedForDeletion,
             sessionData: this.state.sessionData
         }), () => {
             this.tps.clearAllTransactions();
@@ -197,9 +207,17 @@ class App extends React.Component {
             console.log(this.state.sessionData.nextKey);
             console.log(this.state.sessionData.counter);
             this.sortKeyNamePairsByName(updatedPairs);
-            //Set the new session data variable to the filtered out list
+            //Check if the list being deleted is also the current list: if it is, then 
+            //make sure to make the ui a blank screen as if there was no selected list
+            //and make sure to clear all transactions (though, this probably isnt needed because
+            //addList and loadList should be doing this automatically)
+            let list = this.state.currentList;
+            if (this.state.currentDeleteList.key === this.state.currentList.key){
+                list = null;
+            }
             //This set state will then automatically call render() and upate the ui
             this.setState(prevState => ({
+                currentList : list, 
                 sessionData: {
                     keyNamePairs: updatedPairs,
                     counter: prevState.sessionData.counter - 1,
