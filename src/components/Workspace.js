@@ -72,6 +72,21 @@ export default class Workspace extends React.Component {
             editedItems : newEditList
         });
     }
+    handleDrop = (event) => {
+        event.preventDefault();
+        this.props.dragDropTransaction();
+    }
+    handleDragOver = (event, index) => {
+        /* Send back the index of this item to App, so that it can 
+        be saved as the starting index */
+        event.preventDefault();
+        this.props.dragOverCallback(index);
+    }
+    handleDragStart = (event, index) => {
+        /* Send back the index of this item to App, so that it can 
+        be saved as the starting index */
+        this.props.dragStartCallback(event, index);
+    }
     render() {
         const{currentList} = this.props;
         return (
@@ -100,7 +115,10 @@ export default class Workspace extends React.Component {
                                     onChange={this.handleChange}/>
                             </div>
                             : <div id={"item-" + index+1} className="top5-item" onDoubleClick={() => this.handleItemEdit(index+1)}
-                            draggable droppable>
+                            draggable={"true"} droppable={"true"}
+                            onDragStart={(e) => this.handleDragStart(e, index)} 
+                            onDragOver={(e) => this.handleDragOver(e,index)}
+                            onDrop={(e) => this.handleDrop(e)}>
                                     {currentList.items[index]}
                             </div>)
                         :

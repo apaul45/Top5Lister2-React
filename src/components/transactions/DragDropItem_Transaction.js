@@ -4,18 +4,26 @@ for the drag and drop action.
 */
 export default class DragAndDropTransaction extends jsTPS_Transaction{
     //For undo/redo actions, set up old and new list variables
-    constructor(initModel, initOldList, initDragIndex, initDropIndex){
+    constructor(initApp, initDragIndex, initDropIndex){
         super();
-        this.model = initModel;
-        this.oldList = initOldList;
+        this.app = initApp;
         this.dragIndex = initDragIndex;
         this.dropIndex = initDropIndex;
     }
     doTransaction(){
-        this.model.dragDropItem(this.dragIndex, this.dropIndex);
+        let itemList = ["","","","",""];
+        if (this.app.state.currentList !== null){
+            itemList = this.app.db.queryGetList(this.app.state.currentList.key).items;
+        }
+        itemList.splice(this.dropIndex, 0, itemList.splice(this.dragIndex, 1)[0]);
+        this.app.executeDragDrop(itemList);
     }
     undoTransaction(){
-        //Reverse indices to reverse the direction
-        this.model.dragDropItem(this.dropIndex, this.dragIndex);
+        let itemList = ["","","","",""];
+        if (this.app.state.currentList !== null){
+            itemList = this.app.db.queryGetList(this.app.state.currentList.key).items;
+        }
+        itemList.splice(this.dragIndex, 0, itemList.splice(this.dropIndex, 1)[0]);
+        this.app.executeDragDrop(itemList);
     }
 }

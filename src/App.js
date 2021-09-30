@@ -33,7 +33,9 @@ class App extends React.Component {
             sessionData : loadedSessionData,
             //The currentDeleteList attribute contains the pair whos delete button was clicked
             //This will be updated in deleteList so that its name can be rendered correctly in deleteModal
-            currentDeleteList : null
+            currentDeleteList : null,
+            dragStart : 0, 
+            dragOver : 0
         }
     }
     sortKeyNamePairsByName = (keyNamePairs) => {
@@ -241,6 +243,54 @@ class App extends React.Component {
         let modal = document.getElementById("delete-modal");
         modal.classList.remove("is-visible");
     }
+    /* onDragStart updates the starting state drag index variable to the one
+    passed up from Workspace */
+    onDragStart = (event, index) => {      
+         //If there is no list loaded, don't allow the drag to occur
+        if (this.state.currentList === null){
+            event.preventDefault();
+        }
+        else{
+            this.setState (prevState => ({
+                dragStart : index
+            }));
+            console.log("on drag start worked");
+            console.log(this.state.dragStart);
+        }
+    }
+    /* onDragOver does the same thing as onDragStart but for the 
+    dropping index */
+    onDragOver = (index) => {
+        this.setState (prevState => ({
+            dragOver : index
+        }));
+    }
+    dragDropTransaction = () => {
+        console.log(this.state.dragOver);
+        let transaction = new DragAndDropTransaction(this, this.state.dragStart, this.state.dragOver);
+        this.tps.addTransaction(transaction);
+    }
+    executeDragDrop = (newList) => {
+        if (this.state.currentList != null){
+            let newItemList = this.db.queryGetList(this.state.currentList.key);
+            newItemList.items = newList;
+            let newKeyNamePair = [...this.state.sessionData.keyNamePairs];
+            newKeyNamePair.map((pair) => pair.key !== this.state.currentList.key ? pair : pair = newItemList);
+            //use SetState to update the items on the ui & cause a re-render
+            this.setState(prevState => ({
+                currentList: newItemList,
+                sessionData: {
+                    nextKey: prevState.sessionData.nextKey,
+                    counter: prevState.sessionData.counter,
+                    keyNamePairs: newKeyNamePair
+                }
+            }), () => {
+                //Then use after effect to save all changes to local storage using mutationUpdateSessionData
+                this.db.mutationUpdateList(this.state.currentList);
+                this.db.mutationUpdateSessionData(this.state.sessionData);
+            });
+        }
+    }
     render() {
         return (
             <div id="app-root">
@@ -264,6 +314,9 @@ class App extends React.Component {
                 <Workspace
                     currentList={this.state.currentList} 
                     changeItemTransaction = {this.addChangeItemTransaction}
+                    dragDropTransaction = {this.dragDropTransaction}
+                    dragStartCallback = {this.onDragStart}
+                    dragOverCallback = {this.onDragOver}
                     />
                 <Statusbar 
                     currentList={this.state.currentList} />
