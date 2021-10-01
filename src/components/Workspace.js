@@ -3,7 +3,8 @@ export default class Workspace extends React.Component {
     constructor(props){
         super(props);
         this.state = {
-            editedItems : [-1]
+            editedItems : [-1],
+            highlightedItems : [false, false, false, false, false]
         }
     }
     // handleItemEdit(itemId){
@@ -69,11 +70,17 @@ export default class Workspace extends React.Component {
         newEditList.splice(arrayIndex, 1);
         this.setState(
         {
-            editedItems : newEditList
+            editedItems : newEditList,
         });
     }
-    handleDrop = (event) => {
+    handleDrop = (event, index) => {
         event.preventDefault();
+        //Make sure to turn the new container back to original color once dropped
+        let newHighlightedItems = this.state.highlightedItems;
+        newHighlightedItems[index] = false;
+        this.setState({
+            highlightedItems : newHighlightedItems
+        });
         this.props.dragDropTransaction();
     }
     handleDragOver = (event, index) => {
@@ -86,6 +93,22 @@ export default class Workspace extends React.Component {
         /* Send back the index of this item to App, so that it can 
         be saved as the starting index */
         this.props.dragStartCallback(event, index);
+    }
+    //handleDragEnter should turn the droppable target that the dragged target is over green
+    handleDragEnter = (index) => {
+        let newHighlightedItems = this.state.highlightedItems;
+        newHighlightedItems[index] = true;
+        this.setState({
+            highlightedItems : newHighlightedItems
+        });
+    }
+    //handleDragLeave should turn the backgrd color of this target back to reg color if leaving
+    handleDragLeave = (index) => {
+        let newHighlightedItems = this.state.highlightedItems;
+        newHighlightedItems[index] = false;
+        this.setState({
+            highlightedItems : newHighlightedItems
+        });
     }
     render() {
         const{currentList} = this.props;
@@ -118,8 +141,13 @@ export default class Workspace extends React.Component {
                             draggable={"true"} droppable={"true"}
                             onDragStart={(e) => this.handleDragStart(e, index)} 
                             onDragOver={(e) => this.handleDragOver(e,index)}
-                            onDrop={(e) => this.handleDrop(e)}>
+                            onDragEnter={() => this.handleDragEnter(index)}
+                            onDragLeave={() => this.handleDragLeave(index)}
+                            onDrop={(e) => this.handleDrop(e, index)}
+                            style={this.state.highlightedItems[index] ? {background:"green"} : {background: "#e1e4cb"}}
+                            >
                                     {currentList.items[index]}
+
                             </div>)
                         :
                         ['', '', '','',''].map((item, index) =><div id={"item-" + index+1} className="top5-item" onDoubleClick={() => this.handleItemEdit(index+1)}
