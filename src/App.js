@@ -12,7 +12,6 @@ import Banner from './components/Banner.js'
 import Sidebar from './components/Sidebar.js'
 import Workspace from './components/Workspace.js';
 import Statusbar from './components/Statusbar.js'
-
 class App extends React.Component {
     constructor(props) {
         super(props);
@@ -41,6 +40,26 @@ class App extends React.Component {
             updateUndo : false,
             updateRedo : false
         }
+    }
+    handleKeyDown = (event) => {
+        if (event.ctrlKey){
+            if (event.keyCode === 90){
+                this.undo();
+                this.updateToolbar();
+            }
+            else{
+                if (event.keyCode === 89){
+                    this.redo();
+                    this.updateToolbar();
+                }
+            }
+        }
+    }
+    componentDidMount(){
+        document.addEventListener('keydown', this.handleKeyDown);
+    }
+    componentWillUnmount(){
+        document.removeEventListener('keydown', this.handleKeyDown);
     }
     sortKeyNamePairsByName = (keyNamePairs) => {
         keyNamePairs.sort((keyPair1, keyPair2) => {
