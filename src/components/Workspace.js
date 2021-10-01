@@ -144,7 +144,7 @@ export default class Workspace extends React.Component {
                             onDragEnter={() => this.handleDragEnter(index)}
                             onDragLeave={() => this.handleDragLeave(index)}
                             onDrop={(e) => this.handleDrop(e, index)}
-                            style={this.state.highlightedItems[index] ? {background:"green"} : {background: "#e1e4cb"}}
+                            style={this.state.highlightedItems[index] ? {background:"#669966"} : {background: "#e1e4cb"}}
                             >
                                     {currentList.items[index]}
 
