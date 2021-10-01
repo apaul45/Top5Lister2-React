@@ -9,7 +9,8 @@ export default class Sidebar extends React.Component {
                 createNewListCallback, 
                 deleteListCallback, 
                 loadListCallback,
-                renameListCallback} = this.props;
+                renameListCallback,
+                addFoolproof} = this.props;
         return (
             <div id="top5-sidebar">
                 {/* Div containing the add list */}
@@ -19,7 +20,8 @@ export default class Sidebar extends React.Component {
                         id="add-list-button" 
                         onClick={createNewListCallback}
                         className="top5-button" 
-                        value="+" />
+                        value='+'
+                        style={!addFoolproof ? {backgroundColor: "lightgray"} : {backgroundColor: "white"}}/>
                     {heading}
                 </div>
                 <div id="sidebar-list">

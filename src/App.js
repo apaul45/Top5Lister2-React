@@ -35,7 +35,11 @@ class App extends React.Component {
             //This will be updated in deleteList so that its name can be rendered correctly in deleteModal
             currentDeleteList : null,
             dragStart : 0, 
-            dragOver : 0
+            dragOver : 0,
+            updateAdd: true,
+            updateClose: false,
+            updateUndo : false,
+            updateRedo : false
         }
     }
     sortKeyNamePairsByName = (keyNamePairs) => {
@@ -46,45 +50,51 @@ class App extends React.Component {
     }
     // THIS FUNCTION BEGINS THE PROCESS OF CREATING A NEW LIST
     createNewList = () => {
-        // FIRST FIGURE OUT WHAT THE NEW LIST'S KEY AND NAME WILL BE
-        let newKey = this.state.sessionData.nextKey;
-        console.log(newKey);
-        let newName = "Untitled" + newKey;
+        //Only add list if there is no list loaded currently
+        if (this.state.currentList === null){
+            // FIRST FIGURE OUT WHAT THE NEW LIST'S KEY AND NAME WILL BE
+            let newKey = this.state.sessionData.nextKey;
+            console.log(newKey);
+            let newName = "Untitled" + newKey;
 
-        // MAKE THE NEW LIST
-        let newList = {
-            key: newKey,
-            name: newName,
-            items: ["?", "?", "?", "?", "?"]
-        };
-        console.log(newList);
-        // MAKE THE KEY,NAME OBJECT SO WE CAN KEEP IT IN OUR
-        // SESSION DATA SO IT WILL BE IN OUR LIST OF LISTS
-        let newKeyNamePair = { "key": newKey, "name": newName };
-        let updatedPairs = [...this.state.sessionData.keyNamePairs, newKeyNamePair];
-        this.sortKeyNamePairsByName(updatedPairs);
+            // MAKE THE NEW LIST
+            let newList = {
+                key: newKey,
+                name: newName,
+                items: ["?", "?", "?", "?", "?"]
+            };
+            console.log(newList);
+            // MAKE THE KEY,NAME OBJECT SO WE CAN KEEP IT IN OUR
+            // SESSION DATA SO IT WILL BE IN OUR LIST OF LISTS
+            let newKeyNamePair = { "key": newKey, "name": newName };
+            let updatedPairs = [...this.state.sessionData.keyNamePairs, newKeyNamePair];
+            this.sortKeyNamePairsByName(updatedPairs);
 
-        // CHANGE THE APP STATE SO THAT IT THE CURRENT LIST IS
-        // THIS NEW LIST AND UPDATE THE SESSION DATA SO THAT THE
-        // NEXT LIST CAN BE MADE AS WELL. NOTE, THIS setState WILL
-        // FORCE A CALL TO render, BUT THIS UPDATE IS ASYNCHRONOUS,
-        // SO ANY AFTER EFFECTS THAT NEED TO USE THIS UPDATED STATE
-        // SHOULD BE DONE VIA ITS CALLBACK
-        this.setState(prevState => ({
-            currentList: newList,
-            sessionData: {
-                nextKey: prevState.sessionData.nextKey + 1,
-                counter: prevState.sessionData.counter + 1,
-                keyNamePairs: updatedPairs
-            }
-        }), () => {
-            // PUTTING THIS NEW LIST IN PERMANENT STORAGE
-            // IS AN AFTER EFFECT
-            //Make sure the current transaction stack is cleared, because focus will automatically
-            //go to the newly added list 
-            this.tps.clearAllTransactions();
-            this.db.mutationCreateList(newList);
-        });
+            // CHANGE THE APP STATE SO THAT IT THE CURRENT LIST IS
+            // THIS NEW LIST AND UPDATE THE SESSION DATA SO THAT THE
+            // NEXT LIST CAN BE MADE AS WELL. NOTE, THIS setState WILL
+            // FORCE A CALL TO render, BUT THIS UPDATE IS ASYNCHRONOUS,
+            // SO ANY AFTER EFFECTS THAT NEED TO USE THIS UPDATED STATE
+            // SHOULD BE DONE VIA ITS CALLBACK
+            this.setState(prevState => ({
+                updateAdd : false,
+                updateClose : true, 
+                currentList: newList,
+                sessionData: {
+                    nextKey: prevState.sessionData.nextKey + 1,
+                    counter: prevState.sessionData.counter + 1,
+                    keyNamePairs: updatedPairs
+                }
+            }), () => {
+                // PUTTING THIS NEW LIST IN PERMANENT STORAGE
+                // IS AN AFTER EFFECT
+                //Make sure the current transaction stack is cleared, because focus will automatically
+                //go to the newly added list 
+                this.tps.clearAllTransactions();
+                this.db.mutationCreateList(newList);
+            });
+            this.updateToolbar();
+        }
     }
 
     renameList = (key, newName) => {
@@ -147,6 +157,7 @@ class App extends React.Component {
                 this.db.mutationUpdateList(this.state.currentList);
                 this.db.mutationUpdateSessionData(this.state.sessionData);
             });
+            this.updateToolbar();
         }
     }
     undo = () => {
@@ -163,23 +174,30 @@ class App extends React.Component {
             isSameList = true;
         }
         console.log(newCurrentList);
+        //Make sure to make close visibly on and add visibly off
         this.setState(prevState => ({
             currentList: newCurrentList,
-            sessionData: prevState.sessionData
+            sessionData: prevState.sessionData,
+            updateAdd : false,
+            updateClose : true
         }), () => {
-            //Make sure to clear the transaction stack if a NEW list is loaded
             if (!isSameList){
                 this.tps.clearAllTransactions();
             }
+            this.updateToolbar();
         });
     }
     // THIS FUNCTION BEGINS THE PROCESS OF CLOSING THE CURRENT LIST
     closeCurrentList = () => {
+        //Make the close button visibly off and the add button on
         this.setState(prevState => ({
             currentList: null,
-            sessionData: this.state.sessionData
+            sessionData: this.state.sessionData,
+            updateAdd : true, 
+            updateClose : false,
         }), () => {
             this.tps.clearAllTransactions();
+            this.updateToolbar();
         });
     }
     deleteList = (pair) => {
@@ -214,7 +232,7 @@ class App extends React.Component {
             //and make sure to clear all transactions (though, this probably isnt needed because
             //addList and loadList should be doing this automatically)
             let list = this.state.currentList;
-            if (this.state.currentDeleteList.key === this.state.currentList.key){
+            if (this.state.currentList !== null && this.state.currentDeleteList.key === this.state.currentList.key){
                 list = null;
             }
             //This set state will then automatically call render() and upate the ui
@@ -289,7 +307,16 @@ class App extends React.Component {
                 this.db.mutationUpdateList(this.state.currentList);
                 this.db.mutationUpdateSessionData(this.state.sessionData);
             });
+            //Make sure to update the visibility of undo redo buttons
+            this.updateToolbar();
         }
+    }
+    //updateToolbar handles foolproofing for undo & redo
+    updateToolbar(){
+        this.setState(prevState => ({
+            updateUndo : this.tps.hasTransactionToUndo(),
+            updateRedo : this.tps.hasTransactionToRedo(),
+        }));
     }
     render() {
         return (
@@ -299,6 +326,9 @@ class App extends React.Component {
                     closeCallback={this.closeCurrentList} 
                     undoCallback = {this.undo}
                     redoCallback = {this.redo}
+                    updateRedo = {this.state.updateRedo}
+                    updateUndo = {this.state.updateUndo}
+                    updateClose = {this.state.updateClose}
                     />
                 {/* In sidebar, each of the list divs are stored with their
                 keyname pairs, delete buttons, create buttons, and more */}
@@ -310,6 +340,7 @@ class App extends React.Component {
                     deleteListCallback={this.deleteList}
                     loadListCallback={this.loadList}
                     renameListCallback={this.renameList}
+                    addFoolproof={this.state.updateAdd}
                 />
                 <Workspace
                     currentList={this.state.currentList} 
