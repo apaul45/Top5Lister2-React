@@ -304,8 +304,12 @@ class App extends React.Component {
     }
     dragDropTransaction = () => {
         console.log(this.state.dragOver);
-        let transaction = new DragAndDropTransaction(this, this.state.dragStart, this.state.dragOver);
-        this.tps.addTransaction(transaction);
+        //Only add a transaction to the stack if the user drag and dropped to a 
+        //different container
+        if (this.state.dragOver !== this.state.dragStart){
+            let transaction = new DragAndDropTransaction(this, this.state.dragStart, this.state.dragOver);
+            this.tps.addTransaction(transaction);
+        }
     }
     executeDragDrop = (newList) => {
         if (this.state.currentList != null){

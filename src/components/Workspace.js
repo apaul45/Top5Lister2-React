@@ -59,7 +59,10 @@ export default class Workspace extends React.Component {
                 {
                     editedItems : newEditList
             });
-            this.props.changeItemTransaction(this.props.currentList.items[itemId-1],itemId,event.target.value);
+            //Only add a transaction to the stack if the new name is different
+            if (this.props.currentList.items[itemId-1] !== event.target.value){
+                this.props.changeItemTransaction(this.props.currentList.items[itemId-1],itemId,event.target.value);
+            }
         }
     }
     //Blur should dismiss the text box and make the original div re-appear unaffected
