@@ -7,41 +7,6 @@ export default class Workspace extends React.Component {
             highlightedItems : [false, false, false, false, false]
         }
     }
-    // handleItemEdit(itemId){
-    //     let item = document.getElementById("item-" + itemId);
-    //     if (this.props.currentList !== null) {
-    //         item.draggable = false;
-    //         // CLEAR THE TEXT
-    //         item.innerHTML = "";
-    //         // ADD A TEXT FIELD
-    //         let textInput = document.createElement("input");
-    //         textInput.setAttribute("type", "text");
-    //         textInput.setAttribute("id", "item-text-input-" + itemId);
-    //         textInput.setAttribute("value", itemId);
-
-    //         item.appendChild(textInput);
-    //         const inputVal = textInput.value;
-    //         textInput.value = "";
-    //         textInput.value = inputVal;
-    //         textInput.onDoubleClick = (event) => {
-    //             event.stopPropagation();
-    //         }
-    //         textInput.onkeydown= (event) => {
-    //         textInput.onblur = (event) => {
-    //             if (!this.state.enterPressed){
-    //                 this.props.changeItemTransaction(itemId, event.target.value);
-    //                 item.draggable = true;
-    //             }
-    //             else{
-    //                 this.setState(
-    //                     {
-    //                         enterPressed : false
-    //                     }
-    //                 );
-    //             }
-    //         }
-    //     }
-    // }
     handleItemEdit(itemId){
         let newEditList = this.state.editedItems;
         newEditList.push(itemId);
@@ -52,29 +17,22 @@ export default class Workspace extends React.Component {
     }
     handleKeyPress= (event, itemId)=>{
         if (event.key === 'Enter') {
-            let newEditList = this.state.editedItems;
-            const arrayIndex = newEditList.indexOf(itemId);
-            newEditList.splice(arrayIndex, 1);
-            this.setState(
-                {
-                    editedItems : newEditList
-            });
-            //Only add a transaction to the stack if the new name is different
-            if (this.props.currentList.items[itemId-1] !== event.target.value){
-                this.props.changeItemTransaction(this.props.currentList.items[itemId-1],itemId,event.target.value);
-            }
+            this.handleBlur(event, itemId);
         }
     }
     //Blur should dismiss the text box and make the original div re-appear unaffected
-    handleBlur= (itemId) => {
-        // this.props.changeItemTransaction(itemId, event.target.value);
+    handleBlur= (event, itemId) => {
         let newEditList = this.state.editedItems;
         const arrayIndex = newEditList.indexOf(itemId);
         newEditList.splice(arrayIndex, 1);
         this.setState(
-        {
-            editedItems : newEditList,
+            {
+                editedItems : newEditList
         });
+        //Only add a transaction to the stack if the new name is different
+        if (this.props.currentList.items[itemId-1] !== event.target.value){
+            this.props.changeItemTransaction(this.props.currentList.items[itemId-1],itemId,event.target.value);
+        }
     }
     handleDrop = (event, index) => {
         event.preventDefault();
@@ -137,7 +95,7 @@ export default class Workspace extends React.Component {
                                     defaultValue={item} className="top5-item"
                                     onDoubleClick={(e) => e.stopPropagation()} 
                                     onKeyDown={(e) => this.handleKeyPress(e,index+1)} 
-                                    onBlur={() => this.handleBlur(index+1)} 
+                                    onBlur={(e) => this.handleBlur(e, index+1)} 
                                     onChange={this.handleChange}/>
                             </div>
                             : <div id={"item-" + index+1} className="top5-item" onDoubleClick={() => this.handleItemEdit(index+1)}
@@ -159,11 +117,6 @@ export default class Workspace extends React.Component {
                         </div>)
                         }
                     </div>
-                        {/* <div id='item-1' className="top5-item" onDoubleClick={() => this.handleItemEdit(1)}>{currentList!== null ? currentList.items[0] : ""}</div>
-                        <div id='item-2' className="top5-item" onDoubleClick={() => this.handleItemEdit(2)}>{currentList!== null ? currentList.items[1] : ""}</div>
-                        <div id='item-3' className="top5-item" onDoubleClick={() => this.handleItemEdit(3)}>{currentList!== null ? currentList.items[2] : ""}</div>
-                        <div id='item-4' className="top5-item" onDoubleClick={() => this.handleItemEdit(4)}>{currentList!== null ? currentList.items[3] : ""}</div>
-                        <div id='item-5' className="top5-item" onDoubleClick={() => this.handleItemEdit(5)}>{currentList!== null ? currentList.items[4] : ""}</div> */}
                 </div>
             </div>
         )
