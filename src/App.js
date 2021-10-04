@@ -251,12 +251,16 @@ class App extends React.Component {
             //and make sure to clear all transactions (though, this probably isnt needed because
             //addList and loadList should be doing this automatically)
             let list = this.state.currentList;
-            if (this.state.currentList !== null && this.state.currentDeleteList.key === this.state.currentList.key){
+            let add = list !== null && this.state.currentDeleteList.key === list.key;
+            let close = !add;
+            if (list !== null && add){
                 list = null;
             }
             //This set state will then automatically call render() and upate the ui
             this.setState(prevState => ({
                 currentList : list, 
+                updateAdd: add, 
+                updateClose : close,
                 sessionData: {
                     keyNamePairs: updatedPairs,
                     counter: prevState.sessionData.counter - 1,
@@ -265,6 +269,10 @@ class App extends React.Component {
             }), () => {
                 //Save the changes to the current session data to local storage using mutationUpdateSessionData
                 this.db.mutationUpdateSessionData(this.state.sessionData);
+                if (add){
+                    this.tps.clearAllTransactions();
+                    this.updateToolbar();
+                }
             });
             this.hideDeleteListModal();
         }
